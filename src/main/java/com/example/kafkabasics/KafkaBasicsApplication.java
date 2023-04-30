@@ -2,8 +2,10 @@ package com.example.kafkabasics;
 
 import java.util.Properties;
 
+import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,10 +43,36 @@ public class KafkaBasicsApplication {
 		//create producer
 		KafkaProducer<String,String> producer=new KafkaProducer<>(properties);
 		
-		//producer record
-		ProducerRecord<String,String> record=new ProducerRecord<>("success-topic","Near Success");
+		for(int j=0 ; j<2;j++) {
+			//sticky partitioner
+			for(int i=0;i<20;i++) {
+				
+				String topic="success-topic";
+				String value="Near Success Message ";
+				String key="key " + i; 
+				//producer record
+				ProducerRecord<String,String> record=new ProducerRecord<>(topic,key,value);
+				
+				producer.send(record,new Callback() {
+					@Override
+					public void onCompletion(RecordMetadata metadata, Exception e) {
+						if(e ==null) {
+						log.info("\n key ->" + key +					
+						"\n partition " + metadata.partition() 
+								);
+						}else {
+							log.error("Error while producing "+ e);
+						}				
+					}
+				});
+							
+			}
+			
+		}
 		
-		producer.send(record);
+		
+		
+		
 		
 		producer.flush();
 		producer.close();
